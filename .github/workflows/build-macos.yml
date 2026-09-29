@@ -1,0 +1,33 @@
+name: Build macOS installers
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Create the macOS app icon
+        run: bash scripts/create-mac-icon.sh
+      - name: Build Intel and Apple Silicon DMGs
+        run: npm run dist:mac
+      - name: Upload DMGs
+        uses: actions/upload-artifact@v4
+        with:
+          name: VOID-Browser-macOS-${{ github.ref_name }}
+          path: dist/VOID-Browser-Setup-*.dmg
+          if-no-files-found: error
+          retention-days: 30
