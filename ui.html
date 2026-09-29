@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>VOID</title>
+<style>
+  :root { --bg: #0a0a0a; --panel: #0e0e0e; --raised: #141414; --line: #1d1d1d; --text: #d8d8d8; --dim: #666;
+          --lime: #c8ff00; --mono: "JetBrains Mono", "Cascadia Mono", Consolas, "Courier New", monospace; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font: 12px var(--mono); overflow: hidden; user-select: none; }
+  body.focus #chrome, body.focus #status { display: none; }
+  button { font: inherit; color: var(--dim); background: none; border: 0; cursor: pointer; border-radius: 6px; }
+  button:hover:not(:disabled) { color: var(--text); background: var(--raised); }
+  button:disabled { opacity: .3; cursor: default; }
+  :focus-visible { outline: 1px solid var(--lime); }
+  .nd { -webkit-app-region: no-drag; }
+  #chrome { height: 88px; display:flex; flex-direction:column; }
+
+  #tabbar { height:38px; display:flex; align-items:center; gap:4px; padding:0 5px; background:var(--panel); border-bottom:1px solid var(--line); -webkit-app-region:drag; }
+  #brand { width:48px; height:30px; flex:none; color:var(--lime); font:900 13px/1 "Arial Black", "Segoe UI Black", var(--mono); letter-spacing:.08em; -webkit-app-region:no-drag; }
+  #brand:hover { background:transparent; filter:brightness(1.16); }
+  #win { display: flex; height: 100%; flex:none; -webkit-app-region: no-drag; }
+  #win button { width: 32px; height: 100%; border-radius: 0; font-size: 13px; }
+  #win button:last-child:hover { background: #c42b1c; color: #fff; }
+
+  #tabs { display: flex; flex: 1 1 220px; min-width: 110px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; height: 100%; -webkit-app-region: no-drag; }
+  #tabs::-webkit-scrollbar { display:none; }
+  .tab { display: flex; flex: 0 0 145px; align-items: center; gap: 7px; width: 145px; min-width: 75px; height: 100%; padding: 0 5px 0 9px;
+         border-right: 1px solid var(--line); color: var(--dim); cursor: pointer; }
+  .tab.dragging { opacity:.38; }
+  .tab i { width: 8px; height: 8px; border-radius: 50%; background: #333; flex: none; }
+  .tab span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+  .tab.on { background: var(--panel); color: var(--text); box-shadow: inset 0 2px var(--lime); }
+  .tab.on i { background: var(--lime); }
+  .tab.busy i { animation: pulse 1s ease-in-out infinite; }
+  .tab button { width: 20px; height: 20px; line-height: 18px; }
+  #add { width: 26px; height: 28px; font-size: 18px; flex:none; -webkit-app-region:no-drag; }
+
+  #toolbar { position: relative; height: 50px; flex:none; display: flex; align-items: center; gap: 5px; padding: 0 8px; background: var(--panel); border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
+  #toolbar > button { width: 30px; height: 32px; flex:none; font-size: 15px; -webkit-app-region:no-drag; }
+  #toolbar > button svg { width: 15px; height: 15px; display:block; margin:auto; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
+  .box { border: 1px solid var(--line); background: var(--bg); }
+  #omni { flex: 1; min-width: 120px; height: 34px; display: flex; align-items: center; gap: 5px; padding: 0 4px 0 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); -webkit-app-region:no-drag; }
+  #omni:focus-within { border-color: var(--lime); }
+  #url { flex: 1; min-width: 0; height: 100%; background: none; border: 0; color: var(--text); font: 12px var(--mono); user-select: text; }
+  #url:focus { outline: 0; }
+  #go { height: 26px; padding: 0 8px; background: var(--lime); color: #000; font-weight: 700; font-size: 10px; }
+  #go:hover { background: var(--lime) !important; color: #000 !important; filter: brightness(1.12); }
+  #star.on { color: var(--lime); }
+  #marks.on { color: var(--lime); }
+  #load { position: absolute; left: 0; bottom: -1px; height: 2px; width: 100%; background: linear-gradient(90deg, #ff7a00, var(--lime)); opacity: 0; transform-origin: left; }
+  #toolbar.loading #load { opacity: 1; animation: run 1.3s ease-in-out infinite; }
+
+  #status { position: fixed; left: 0; right: 0; bottom: 0; height: 22px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 10px; border-top: 1px solid var(--line); background: var(--bg); color: var(--dim); font-size: 10.5px; }
+  #status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #ads { height: 16px; padding: 0 6px; border: 1px solid #333; border-radius: 4px; font-size: 10px; font-weight: 700; }
+  #ads.on { color: var(--lime); border-color: var(--lime); }
+
+  @keyframes run { 0% { transform: scaleX(0); } 70% { transform: scaleX(.9); } 100% { transform: scaleX(1); opacity: 0; } }
+  @keyframes pulse { 50% { opacity: .25; } }
+  @media (prefers-reduced-motion: reduce) { #toolbar.loading #load, .tab.busy i { animation: none; } }
+</style>
+</head>
+<body>
+<div id="chrome">
+  <div id="tabbar">
+    <button id="brand" title="VOID home" aria-label="Go to VOID home">VOID</button>
+    <div id="tabs" title="Drag a tab to reorder it or pull it outside to open a new window"></div><button id="add" title="New tab (Ctrl+T)">+</button>
+    <div id="win"><button id="min" title="Minimize">&#8211;</button><button id="max" title="Maximize">&#9633;</button><button id="quit" title="Close">&#10005;</button></div>
+  </div>
+  <div id="toolbar">
+    <button id="back" title="Back">&larr;</button>
+    <button id="fwd" title="Forward">&rarr;</button>
+    <button id="reload" title="Reload / stop">&#8635;</button>
+    <div id="omni"><span>&#128269;</span><input id="url" spellcheck="false" placeholder="Search or type a URL…"><button id="go">GO</button></div>
+    <button id="star" title="Save bookmark (Ctrl+D)" aria-label="Save bookmark (Ctrl+D)">&#9734;</button>
+    <button id="marks" title="Bookmarks" aria-label="Open bookmarks"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 4.5h10M5 8.5h10M5 12.5h7M5 16h10"/><circle cx="3" cy="4.5" r=".5"/><circle cx="3" cy="8.5" r=".5"/><circle cx="3" cy="12.5" r=".5"/></svg></button>
+    <button id="shot" title="Save a screenshot of this page" aria-label="Take screenshot"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6.5h3l1.3-2h5.4l1.3 2h3v10H3z"/><circle cx="10" cy="11.5" r="3"/></svg></button>
+    <button id="spotify" title="Music: Spotify or My music (Ctrl+Shift+M)" aria-label="Open music player"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 15.5V4.5l8-1.5v10.5"/><ellipse cx="5.5" cy="16" rx="2.5" ry="1.5"/><ellipse cx="13.5" cy="14.5" rx="2.5" ry="1.5"/></svg></button>
+    <button id="menu" title="Menu">&#8942;</button>
+    <div id="load"></div>
+  </div>
+</div>
+<div id="status"><span id="stext">New tab</span><button id="ads" title="Ad and tracker blocking">AD</button></div>
+<script>
+  const $ = s => document.querySelector(s), url = $('#url');
+  let statusNoticeTimer = 0;
+  voidApi.onState(s => {
+    document.body.classList.toggle('focus', s.focusMode);
+    document.documentElement.style.setProperty('--lime', s.accent);
+    $('#tabs').replaceChildren(...s.tabs.map(t => {
+      const d = document.createElement('div');
+      d.className = 'tab' + (t.id === s.active ? ' on' : '') + (t.loading ? ' busy' : '');
+      d.setAttribute('role','tab'); d.setAttribute('aria-selected',String(t.id===s.active)); d.title='Drag to reorder or pull out into a new window';
+      const dot = document.createElement('i'), label = document.createElement('span'), x = document.createElement('button');
+      d.draggable = true;
+      d.ondragstart = e => { e.dataTransfer.setData('text/plain', String(t.id)); e.dataTransfer.effectAllowed = 'move'; d.classList.add('dragging'); };
+      d.ondragend = e => { d.classList.remove('dragging'); voidApi.cmd('detach', { id:t.id, x:e.screenX, y:e.screenY }); };
+      d.ondragover = e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+      d.ondrop = e => { e.preventDefault(); const id=Number(e.dataTransfer.getData('text/plain')); if(id && id!==t.id) voidApi.cmd('reorder',{id,beforeId:t.id}); };
+      label.textContent = t.title; x.textContent = '×'; x.title = 'Close tab';
+      x.onclick = e => { e.stopPropagation(); voidApi.cmd('close', t.id); };
+      d.onclick = () => voidApi.cmd('switch', t.id);
+      d.append(dot, label, x);
+      return d;
+    }));
+    const currentTab=$('#tabs .tab.on'); if(currentTab){const rail=$('#tabs');if(currentTab.offsetLeft<rail.scrollLeft)rail.scrollLeft=currentTab.offsetLeft;else if(currentTab.offsetLeft+currentTab.offsetWidth>rail.scrollLeft+rail.clientWidth)rail.scrollLeft=currentTab.offsetLeft+currentTab.offsetWidth-rail.clientWidth;}
+    $('#back').disabled = !s.back; $('#fwd').disabled = !s.fwd;
+    $('#toolbar').classList.toggle('loading', s.loading);
+    $('#star').textContent = s.starred ? '★' : '☆';
+    $('#star').title = s.starred ? 'Remove bookmark (Ctrl+D)' : 'Save bookmark (Ctrl+D)';
+    $('#star').setAttribute('aria-label', $('#star').title);
+    $('#star').setAttribute('aria-pressed', String(s.starred));
+    $('#star').classList.toggle('on', s.starred);
+    $('#marks').classList.toggle('on', s.bookmarks.length > 0);
+    $('#marks').title = s.bookmarks.length ? `Bookmarks (${s.bookmarks.length})` : 'Bookmarks';
+    $('#ads').classList.toggle('on', s.blockOn);
+    $('#ads').textContent = s.blockOn && s.blocked ? 'AD ' + s.blocked : 'AD';
+    window.lastStatusText = (s.loading ? 'Loading ' : '') + (s.url || s.label);
+    if (!statusNoticeTimer) $('#stext').textContent = window.lastStatusText;
+    if (document.activeElement !== url) url.value = s.url;
+  });
+  voidApi.onFocusUrl(() => { url.focus(); url.select(); });
+  url.addEventListener('focus', () => url.select());
+  const go = () => { voidApi.cmd('go', url.value); url.blur(); };
+  url.addEventListener('keydown', e => { if (e.key === 'Enter') go(); if (e.key === 'Escape') url.blur(); });
+  $('#go').onclick = go;
+  $('#brand').onclick = () => voidApi.cmd('home');
+  for (const id of ['back', 'reload', 'star', 'menu', 'min', 'max', 'quit', 'add', 'ads'])
+    $('#' + id).onclick = () => voidApi.cmd({ add: 'new' }[id] || id);
+  $('#spotify').onclick = () => { const r = $('#spotify').getBoundingClientRect(); voidApi.cmd('spotify', { x: r.x, y: r.y, width: r.width, height: r.height }); };
+  $('#fwd').onclick = () => voidApi.cmd('fwd');
+  $('#marks').onclick = () => voidApi.cmd('bookmarks');
+  $('#tabs').addEventListener('dragover',e=>{if(e.target===$('#tabs')){e.preventDefault();e.dataTransfer.dropEffect='move';}});
+  $('#tabs').addEventListener('drop',e=>{if(e.target===$('#tabs')){e.preventDefault();const id=Number(e.dataTransfer.getData('text/plain'));if(id)voidApi.cmd('reorder',{id,beforeId:null});}});
+  $('#shot').onclick=()=>voidApi.cmd('screenshot');
+  voidApi.onNotice(message=>{ $('#stext').textContent=message; clearTimeout(statusNoticeTimer); statusNoticeTimer=setTimeout(()=>{ $('#stext').textContent=window.lastStatusText||'New tab'; statusNoticeTimer=0; },2200); });
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<style>
+  :root { --bg: #0a0a0a; --raised: #111; --line: #1d1d1d; --text: #d8d8d8; --dim: #666; --lime: #c8ff00; --mono: "JetBrains Mono", "Cascadia Mono", Consolas, "Courier New", monospace; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: var(--bg); color: var(--text); font: 13px/1.5 var(--mono); }
+  main { max-width: 640px; margin: 0 auto; padding: 48px 20px 80px; }
+  h1 { font: 900 28px "Arial Black", "Segoe UI Black", sans-serif; letter-spacing: -.02em; color: var(--lime); margin-bottom: 36px; }
+  h2 { font-size: 13px; font-weight: 700; margin: 36px 0 4px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .row.col { flex-direction: column; align-items: stretch; gap: 10px; }
+  .row p { color: var(--dim); font-size: 12px; max-width: 380px; }
+  select, textarea, button.act { background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font: 12px var(--mono); }
+  select { padding: 8px 10px; }
+  textarea { width: 100%; height: 110px; padding: 10px; resize: vertical; }
+  select:focus, textarea:focus { outline: 0; border-color: var(--lime); }
+  button.act { padding: 8px 14px; cursor: pointer; }
+  button.act:hover, button.act:focus-visible { border-color: var(--lime); outline: 0; }
+  .end { display: flex; align-items: center; gap: 12px; }
+  .note { color: var(--lime); font-size: 12px; }
+  .sw { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; margin-left: 6px; }
+  .sw.on { border-color: #fff; }
+  .sw:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .wall-options { display:flex; flex-wrap:wrap; gap:8px; }
+  .wall-maker { display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+  .wall-maker label { display:flex; align-items:center; gap:7px; color:var(--dim); font-size:11px; }
+  input[type="color"] { width:38px; height:28px; padding:2px; background:var(--raised); border:1px solid var(--line); border-radius:5px; cursor:pointer; }
+  #design-preview { width:100%; height:104px; border:1px solid var(--line); border-radius:8px; }
+  .wall-active { color:var(--lime) !important; border-color:var(--lime) !important; }
+  [hidden] { display:none !important; }
+  .switch { position: relative; width: 40px; height: 22px; flex: none; }
+  .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+  .switch span { position: absolute; inset: 0; background: #222; border-radius: 11px; transition: background .15s; }
+  .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #777; transition: transform .15s, background .15s; }
+  .switch input:checked + span { background: var(--lime); }
+  .switch input:checked + span::after { transform: translateX(18px); background: #000; }
+  .switch input:focus-visible + span { outline: 1px solid var(--lime); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .switch span, .switch span::after { transition: none; } }
+  footer { margin-top: 40px; color: var(--dim); font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Settings</h1>
+
+  <h2>Search</h2>
+  <div class="row"><label for="engine">Search engine<p>Used when you type something that isn't a web address.</p></label>
+    <select id="engine"><option value="duckduckgo">DuckDuckGo</option><option value="google">Google</option><option value="brave">Brave Search</option><option value="bing">Bing</option></select></div>
+
+  <h2>Privacy</h2>
+  <div class="row"><label for="adblock">Block ads and trackers<p>Stops known ad and tracking domains from loading.</p></label>
+    <div class="switch"><input type="checkbox" id="adblock"><span></span></div></div>
+  <div class="row"><div>Clear cookies and cache<p>Signs you out of sites and frees up disk space.</p></div>
+    <div class="end"><span class="note" id="n-clear"></span><button class="act" id="clear">Clear data</button></div></div>
+
+  <h2>Focus</h2>
+  <div class="row col"><label for="blocklist">Blocked sites<p>One site per line. These won't load in VOID at all. Add the ones that eat your afternoon.</p></label>
+    <textarea id="blocklist" spellcheck="false" placeholder="youtube.com&#10;reddit.com"></textarea>
+    <div class="end"><button class="act" id="save">Save list</button><span class="note" id="n-save"></span></div></div>
+
+  <h2>Look</h2>
+  <div class="row"><div>Accent color</div><div id="swatches"></div></div>
+  <h2>Static wallpapers</h2>
+  <div class="row"><div>Choose a still background<p>Use a picture or make a design with your own colors and pattern.</p></div><div class="wall-options"><select id="wallpaper"><option value="none">Plain</option><option value="image">My image</option><option value="design">My design</option></select><button class="act" id="use-static">Use static</button></div></div>
+  <div class="row"><div>Wallpaper image<p>Pick a JPG, PNG, or WebP from your computer.</p></div><button class="act" id="pick-wall">Choose image</button></div>
+  <div class="row col" id="design-controls" hidden><div>Build a static wallpaper<p>Changes save as you edit. Choose a background, accent, and pattern.</p></div>
+    <div class="wall-maker"><label>Background <input type="color" id="design-base"></label><label>Pattern color <input type="color" id="design-accent"></label><label>Pattern <select id="design-pattern"><option value="glow">Soft glow</option><option value="dots">Dots</option><option value="grid">Grid</option><option value="diagonal">Diagonal lines</option></select></label></div>
+    <div id="design-preview" aria-label="Wallpaper preview"></div>
+  </div>
+  <h2>Animated wallpapers</h2>
+  <div class="row"><div>Choose an animation<p>Matrix rain, flowing lines, breathing hexagons, or your own GIF/video. Animations pause while the new tab is hidden.</p></div><div class="wall-options"><select id="animated-wallpaper"><option value="none">Off</option><option value="matrix">Matrix rain</option><option value="waves">Flowing lines</option><option value="hexagons">Breathing hexagons</option><option value="custom">My GIF or video</option></select><button class="act" id="use-animated">Use animated</button></div></div>
+  <div class="row"><div>Custom animation<p>Choose a looping GIF, MP4, or WebM video.</p></div><button class="act" id="pick-animated-wall">Choose GIF or video</button></div>
+
+  <h2>Quick links</h2>
+  <div class="row"><div>Reset new tab tiles<p>Brings back the default eight and removes your own.</p></div>
+    <div class="end"><span class="note" id="n-links"></span><button class="act" id="links">Reset tiles</button></div></div>
+
+  <footer>VOID 0.8.4. Open settings anytime with Ctrl+,</footer>
+</main>
+<script>
+  const $ = s => document.querySelector(s);
+  const COLORS = [['#c8ff00', 'Lime'], ['#2bff88', 'Mint'], ['#00e5ff', 'Cyan'], ['#ff7a00', 'Orange'], ['#ff3d9a', 'Pink']];
+  const flash = (id, text) => { $(id).textContent = text; setTimeout(() => $(id).textContent = '', 2000); };
+  const design = { base: '#0a0a0a', accent: '#16351d', pattern: 'glow' };
+  let designSaveTimer=0;
+  function designBackground(d) {
+    const base=d.base||'#0a0a0a', accent=d.accent||'#16351d';
+    if(d.pattern==='dots') return {image:`radial-gradient(circle, ${accent}b0 1px, transparent 1.5px),linear-gradient(135deg,${base},#080808)`,size:'22px 22px,auto'};
+    if(d.pattern==='grid') return {image:`linear-gradient(${accent}55 1px,transparent 1px),linear-gradient(90deg,${accent}55 1px,transparent 1px),linear-gradient(135deg,${base},#080808)`,size:'28px 28px,28px 28px,auto'};
+    if(d.pattern==='diagonal') return {image:`repeating-linear-gradient(135deg,${accent}55 0 1px,transparent 1px 16px),linear-gradient(135deg,${base},#080808)`,size:'auto'};
+    return {image:`radial-gradient(ellipse at 18% 8%,${accent}a0,transparent 58%),linear-gradient(135deg,${base},#080808)`,size:'auto'};
+  }
+  function updateDesignPreview() {
+    design.base=$('#design-base').value; design.accent=$('#design-accent').value; design.pattern=$('#design-pattern').value;
+    const bg=designBackground(design), preview=$('#design-preview'); preview.style.backgroundImage=bg.image; preview.style.backgroundSize=bg.size;
+    clearTimeout(designSaveTimer);designSaveTimer=setTimeout(()=>voidSettings.set('wallpaper-design',{...design}),180);
+  }
+  function setMode(mode) {
+    $('#use-static').classList.toggle('wall-active',mode==='static'); $('#use-animated').classList.toggle('wall-active',mode==='animated');
+  }
+
+  function setAccent(c) {
+    document.documentElement.style.setProperty('--lime', c);
+    document.querySelectorAll('.sw').forEach(b => b.classList.toggle('on', b.dataset.c === c));
+  }
+  $('#swatches').replaceChildren(...COLORS.map(([c, name]) => {
+    const b = document.createElement('button');
+    b.className = 'sw'; b.dataset.c = c; b.title = name; b.setAttribute('aria-label', name); b.style.background = c;
+    b.onclick = () => { setAccent(c); voidSettings.set('accent', c); };
+    return b;
+  }));
+
+  voidSettings.get().then(s => {
+    $('#engine').value = s.engine;
+    $('#adblock').checked = s.adblock;
+    $('#blocklist').value = s.blocklist.join('\n');
+    setAccent(s.accent);
+    $('#wallpaper').value=s.wallpaper||'none';
+    $('#animated-wallpaper').value=s.animatedWallpaper||'none';
+    $('#design-base').value=s.wallpaperDesign?.base||design.base;
+    $('#design-accent').value=s.wallpaperDesign?.accent||design.accent;
+    $('#design-pattern').value=s.wallpaperDesign?.pattern||design.pattern;
+    $('#design-controls').hidden=$('#wallpaper').value!=='design';
+    const bg=designBackground(s.wallpaperDesign||design); $('#design-preview').style.backgroundImage=bg.image; $('#design-preview').style.backgroundSize=bg.size;
+    setMode(s.wallpaperMode||'static');
+  });
+
+  $('#engine').onchange = e => voidSettings.set('engine', e.target.value);
+  $('#adblock').onchange = e => voidSettings.set('adblock', e.target.checked);
+  $('#wallpaper').onchange = e => { $('#design-controls').hidden=e.target.value!=='design'; voidSettings.set('wallpaper',e.target.value); };
+  $('#animated-wallpaper').onchange = e => voidSettings.set('animated-wallpaper',e.target.value);
+  $('#use-static').onclick = () => { setMode('static'); voidSettings.set('wallpaper-mode','static'); };
+  $('#use-animated').onclick = () => { setMode('animated'); voidSettings.set('wallpaper-mode','animated'); };
+  $('#pick-wall').onclick = async () => { const u=await voidSettings.pickWallpaper(); if(u) $('#wallpaper').value='image'; };
+  $('#pick-animated-wall').onclick = async () => { const u=await voidSettings.pickAnimatedWallpaper(); if(u) $('#animated-wallpaper').value='custom'; };
+  $('#design-base').oninput=updateDesignPreview; $('#design-accent').oninput=updateDesignPreview; $('#design-pattern').onchange=updateDesignPreview;
+  $('#save').onclick = () => { voidSettings.set('blocklist', $('#blocklist').value.split('\n')); flash('#n-save', 'Saved'); };
+  $('#clear').onclick = () => voidSettings.act('clear');
+  $('#links').onclick = () => voidSettings.act('links');
+  function done(a) { flash(a === 'clear' ? '#n-clear' : '#n-links', a === 'clear' ? 'Cleared' : 'Reset'); }
+</script>
+</body>
+</html>

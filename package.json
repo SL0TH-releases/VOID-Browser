@@ -1,0 +1,78 @@
+{
+  "name": "void-browser",
+  "version": "0.8.4",
+  "description": "VOID: browse the void.",
+  "productName": "VOID Browser",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "npm run dist:win",
+    "dist:win": "electron-builder --win nsis --x64 --publish never",
+    "dist:mac": "electron-builder --mac dmg --x64 --arm64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.void.browser",
+    "productName": "VOID Browser",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "tabpreload.js",
+      "spotifyPreload.js",
+      "*.html",
+      "assets/**",
+      "package.json"
+    ],
+    "electronDownload": {
+      "cache": ".electron-cache"
+    },
+    "win": {
+      "icon": "assets/void.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "VOID-Browser-Setup-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "icon": "build/void.icns",
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "VOID-Browser-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VOID Browser",
+      "installerIcon": "assets/void.ico",
+      "uninstallerIcon": "assets/void.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
+    },
+    "electronLanguages": [
+      "en-US"
+    ]
+  }
+}

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Spotify</title>
+<style>
+  :root { --bg: #0e0e0e; --raised: #151515; --line: #232323; --text: #d8d8d8; --dim: #6b6b6b; --lime: #c8ff00; --mono: "JetBrains Mono", "Cascadia Mono", Consolas, "Courier New", monospace; color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font: 12px/1.5 var(--mono); user-select: none; }
+  body { border: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 8px; flex: none; }
+  header b { font-size: 13px; }
+  button.quiet { background: none; border: 1px solid transparent; color: var(--dim); padding: 4px 6px; border-radius: 6px; font: 12px var(--mono); cursor: pointer; }
+  button.quiet:hover, button.quiet:focus-visible { color: var(--text); outline: 0; }
+  #embed { padding: 0 14px; flex: none; }
+  #embed iframe { width: 100%; border: 0; border-radius: 12px; display: block; }
+  #hint { padding: 8px 14px 0; color: var(--dim); font-size: 11px; flex: none; }
+  #hint.err { color: #ff6a5c; }
+  form { display: flex; gap: 6px; padding: 10px 14px; flex: none; }
+  input { flex: 1; min-width: 0; padding: 7px 9px; background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font: 11.5px var(--mono); user-select: text; }
+  input:focus { outline: 0; border-color: var(--lime); }
+  button.main { background: var(--lime); color: #000; border: 1px solid var(--lime); border-radius: 6px; font: 12px var(--mono); font-weight: 700; padding: 0 12px; cursor: pointer; }
+  button.main:hover { filter: brightness(1.1); }
+  h2 { font-size: 11px; font-weight: 700; color: var(--dim); letter-spacing: .05em; padding: 4px 14px; flex: none; }
+  #list { flex: 1; overflow-y: auto; padding: 0 8px 10px; }
+  .pl { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border-radius: 6px; color: var(--text); cursor: pointer; }
+  .pl:hover, .pl:focus-visible { background: var(--raised); outline: 0; }
+  .pl.on { color: var(--lime); }
+  .pl span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pl .x { width: 20px; height: 20px; opacity: 0; flex: none; }
+  .pl:hover .x { opacity: 1; }
+  .empty { padding: 10px 14px 14px; color: var(--dim); font-size: 11.5px; }
+  .switcher { display:flex; justify-content:flex-start; gap:8px; padding:0 14px 10px; }
+  .switcher button { display:flex; align-items:center; gap:7px; padding:5px 9px; color:var(--dim); background:var(--raised); border:1px solid var(--line); border-radius:999px; cursor:pointer; font:11px var(--mono); }
+  .switcher button.on { color:var(--lime); }
+  .dot { width:7px; height:7px; border-radius:50%; background:#444; }
+  .switcher .on .dot { background:var(--lime); box-shadow:0 0 8px var(--lime); }
+  #customPane { display:none; flex:1; min-height:0; flex-direction:column; }
+  #customPane.on { display:flex; }
+  #spotifyPane { display:flex; flex:1; min-height:0; flex-direction:column; }
+  #spotifyPane.off { display:none; }
+  #track-list { flex:1; overflow:auto; padding:0 8px 8px; }
+  .track { display:flex; align-items:center; gap:8px; padding:8px; border-radius:6px; cursor:pointer; }
+  .track:hover,.track.on { background:var(--raised); color:var(--lime); }
+  .track span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .track button { width:26px; height:26px; flex:none; border:1px solid var(--line); border-radius:5px; background:var(--raised); color:var(--dim); cursor:pointer; }
+  .track button:hover { color:var(--text); border-color:var(--lime); }
+  #music-status { padding:0 14px 7px; color:var(--dim); font-size:10px; flex:none; }
+  #music-status.err { color:#ff786d; }
+  #audio { width:calc(100% - 28px); margin:0 14px 12px; }
+</style>
+</head>
+<body>
+<header><b id="modeTitle">Spotify</b><div><button class="quiet" id="login">Log in</button> <button class="quiet" id="x" aria-label="Close">&#10005;</button></div></header>
+<nav class="switcher" aria-label="Choose music source"><button id="spotifyTab" class="on" aria-pressed="true"><i class="dot"></i> Spotify</button><button id="musicTab" aria-pressed="false"><i class="dot"></i> My music</button></nav>
+<div id="spotifyPane">
+
+<div id="embed"></div>
+<p id="hint">Paste a playlist, album or song link and save it here for one click next time.</p>
+<form id="f"><input id="link" placeholder="Paste a Spotify link" spellcheck="false" autocomplete="off"><button class="main">Save</button></form>
+
+<h2>YOUR PLAYLISTS</h2>
+<div id="list"></div>
+</div>
+<div id="customPane"><button class="main" id="add-music" style="margin:4px 14px 7px;padding:9px">＋ Add music from this computer</button><p id="music-status" role="status">Choose a track to start playing.</p><div id="track-list"></div><audio id="audio" controls preload="metadata"></audio></div>
+
+<script>
+  const $ = s => document.querySelector(s);
+  function setMode(mode){const custom=mode==='music';$('#spotifyPane').classList.toggle('off',custom);$('#customPane').classList.toggle('on',custom);$('#spotifyTab').classList.toggle('on',!custom);$('#musicTab').classList.toggle('on',custom);$('#spotifyTab').setAttribute('aria-pressed',String(!custom));$('#musicTab').setAttribute('aria-pressed',String(custom));$('#modeTitle').textContent=custom?'My music':'Spotify';$('#login').style.visibility=custom?'hidden':'visible';try{localStorage.setItem('void.music.mode',mode)}catch{}}
+  $('#spotifyTab').onclick=()=>setMode('spotify');$('#musicTab').onclick=()=>setMode('music');
+  $('#x').onclick = () => voidSpotify.hide();
+
+  function parse(s) {
+    s = (s || '').trim();
+    let m = s.match(/^spotify:(track|album|playlist|episode|show|artist):([A-Za-z0-9]{22})$/);
+    if (!m) m = s.match(/^https?:\/\/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]{22})(?:[/?#].*)?$/);
+    return m ? { type: m[1], id: m[2] } : null;
+  }
+  let lastLoaded = null;
+  function loadEmbed(p) {
+    lastLoaded = p;
+    const f = document.createElement('iframe');
+    f.src = 'https://open.spotify.com/embed/' + p.type + '/' + p.id + '?theme=0';
+    f.height = (p.type === 'track' || p.type === 'episode') ? 152 : 352;
+    f.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
+    f.title = 'Spotify player';
+    $('#embed').replaceChildren(f);
+  }
+  $('#login').onclick = () => voidSpotify.login();
+  voidSpotify.onLoginDone(() => {
+    $('#hint').className = ''; $('#hint').textContent = 'Logged in. Reloading the player…';
+    if (lastLoaded) loadEmbed(lastLoaded);
+  });
+  function load(link, id) {
+    const p = parse(link), hint = $('#hint');
+    if (!p) { hint.className = 'err'; hint.textContent = "That doesn't look like a Spotify link. In Spotify, use Share, then Copy link."; return false; }
+    hint.className = ''; hint.textContent = 'Press play in the player above.';
+    loadEmbed(p);
+    document.querySelectorAll('.pl').forEach(el => el.classList.toggle('on', el.dataset.id === String(id)));
+    try { localStorage.setItem('void.spotify.last', link); } catch {}
+    return true;
+  }
+
+  function render(list) {
+    const box = $('#list');
+    if (!list.length) { box.replaceChildren(); box.innerHTML = '<p class="empty">Nothing saved yet. Paste a link above.</p>'; return; }
+    box.replaceChildren(...list.map(p => {
+      const r = document.createElement('div'), n = document.createElement('span'), x = document.createElement('button');
+      r.className = 'pl'; r.dataset.id = p.id; r.tabIndex = 0;
+      n.textContent = p.title; x.className = 'x'; x.textContent = '×'; x.title = 'Remove';
+      x.onclick = e => { e.stopPropagation(); voidSpotify.remove(p.id); };
+      r.onclick = () => load(p.link, p.id);
+      r.onkeydown = e => { if (e.key === 'Enter') load(p.link, p.id); };
+      r.append(n, x);
+      return r;
+    }));
+  }
+
+  $('#f').onsubmit = e => {
+    e.preventDefault();
+    const link = $('#link').value;
+    if (!load(link)) return;
+    let title = 'Playlist';
+    try { title = new URL(link).pathname.split('/').filter(Boolean)[0] === 'track' ? 'Track' : 'Playlist'; } catch {}
+    voidSpotify.add(title + ' — ' + new Date().toLocaleDateString(), link);
+    $('#link').value = '';
+  };
+
+  voidSpotify.get().then(render);
+  voidSpotify.onLib(render);
+  try { const last = localStorage.getItem('void.spotify.last'); if (last) load(last); } catch {}
+  let musicLibrary=[];
+  const musicStatus=(message,error=false)=>{const el=$('#music-status');el.textContent=message;el.classList.toggle('err',error)};
+  function playTrack(track,row){
+    const audio=$('#audio');
+    if(!track.src){musicStatus('This track has no playable file path. Remove it and import it again.',true);return;}
+    document.querySelectorAll('.track').forEach(x=>x.classList.remove('on'));row.classList.add('on');
+    audio.pause();audio.dataset.trackId=String(track.id);audio.src=track.src;audio.load();
+    const attempt=audio.play();
+    if(attempt&&attempt.then)attempt.then(()=>musicStatus('Playing: '+track.title)).catch(err=>musicStatus(err?.name==='NotSupportedError'?'This audio format could not be played. Try MP3, WAV, or OGG.':'Could not start this track. Check that the file still exists, then import it again.',true));
+  }
+  function renderMusic(list){
+    musicLibrary=Array.isArray(list)?list:[];const box=$('#track-list');
+    if(!musicLibrary.length){box.innerHTML='<p class="empty">Your imported tracks will appear here.</p>';return;}
+    box.replaceChildren(...musicLibrary.map(t=>{const row=document.createElement('div'),name=document.createElement('span'),remove=document.createElement('button');row.className='track';row.tabIndex=0;row.setAttribute('role','button');row.title='Select to play';name.textContent=t.title;remove.textContent='×';remove.title='Remove from list';remove.setAttribute('aria-label','Remove '+t.title);row.onclick=()=>playTrack(t,row);row.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();playTrack(t,row);}};remove.onclick=e=>{e.stopPropagation();if($('#audio').dataset.trackId===String(t.id)){const a=$('#audio');a.pause();a.removeAttribute('src');a.load();delete a.dataset.trackId;musicStatus('Track removed. Choose another song to play.');}voidSpotify.removeMusic(t.id)};row.append(name,remove);return row;}));
+  }
+  $('#audio').addEventListener('error',()=>{const e=$('#audio').error;if(e)musicStatus(e.code===4?'This file format is not supported by the player. Try MP3, WAV, or OGG.':'The audio file could not be read. Re-import the file if it was moved.',true);});
+  $('#audio').addEventListener('ended',()=>musicStatus('Track finished. Use the player controls to replay it.'));
+  $('#add-music').onclick=async()=>{const before=new Set(musicLibrary.map(t=>t.id));musicStatus('Choose audio files to import…');try{const list=await voidSpotify.pickMusic();renderMusic(list);setMode('music');const added=musicLibrary.filter(t=>!before.has(t.id)).length;musicStatus(added?`Added ${added} track${added===1?'':'s'}. Select a song to play.`:musicLibrary.length?'Your music library is ready. Select a song to play.':'No tracks added yet.');}catch{musicStatus('Could not import these files. Try MP3, WAV, or OGG.',true);}};
+  voidSpotify.getMusic().then(renderMusic).catch(()=>musicStatus('Could not load your music library.',true));voidSpotify.onMusic(renderMusic);
+  try{setMode(localStorage.getItem('void.music.mode')||'spotify')}catch{setMode('spotify')}
+</script>
+</body>
+</html>

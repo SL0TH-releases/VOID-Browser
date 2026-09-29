@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>New Tab</title>
+<style>
+  :root { --bg: #0a0a0a; --raised: #111; --line: #1d1d1d; --text: #d8d8d8; --dim: #555; --lime: #c8ff00; --mono: "JetBrains Mono", "Cascadia Mono", Consolas, "Courier New", monospace; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font: 12px var(--mono); }
+  #wallpaper { position:fixed; inset:0; z-index:0; pointer-events:none; opacity:1; background-position:center; background-size:cover; overflow:hidden; }
+  #wallCanvas, #wallVideo, #wallGif { position:absolute; inset:0; width:100%; height:100%; }
+  #wallCanvas { display:none; opacity:.6; }
+  #wallVideo, #wallGif { display:none; object-fit:cover; }
+  #wallpaper.custom { opacity:.55; }
+  main { position:relative; z-index:1; }
+  @media (prefers-reduced-motion: reduce) { #wallCanvas { opacity:.42; } }
+  main { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 32px 16px; }
+  h1 { font: 900 clamp(72px, 11vw, 120px)/1 "Arial Black", "Segoe UI Black", Impact, sans-serif; letter-spacing: -.04em; color: var(--lime); }
+  h1 i { display: inline-block; width: .2em; height: .2em; margin-left: .04em; background: #e8e8e8; }
+  .sub { color: var(--dim); font-size: 11px; letter-spacing: .5em; padding-left: .5em; margin-bottom: 18px; }
+  form { display: flex; width: min(625px, 100%); border: 1px solid var(--line); border-radius: 8px; background: var(--raised); overflow: hidden; }
+  form:focus-within { border-color: var(--lime); }
+  form input { flex: 1; height: 54px; padding: 0 20px; background: none; border: 0; color: var(--text); font: 13px var(--mono); }
+  form input:focus { outline: 0; }
+  form button { width: 85px; border: 0; background: var(--lime); color: #000; font: 700 12px var(--mono); letter-spacing: .1em; cursor: pointer; }
+  #grid { width: min(625px, 100%); display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 8px; }
+  .tile { height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 0 6px;
+          border: 1px solid var(--line); border-radius: 8px; background: var(--raised); color: var(--dim); text-decoration: none;
+          font: 10px var(--mono); letter-spacing: .08em; cursor: pointer; overflow: hidden; }
+  .tile b { font-size: 22px; line-height: 1; font-weight: 400; color: var(--lime); }
+  .tile em { font-style: normal; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tile:hover, .tile:focus-visible { border-color: #333; color: var(--text); outline: 0; }
+  .tile.add { border-style: dashed; background: none; }
+  .tile input { width: 100%; padding: 6px; background: var(--bg); border: 1px solid var(--lime); border-radius: 4px; color: var(--text); font: 10px var(--mono); }
+  .tile input:focus { outline: 0; }
+  @media (max-width: 520px) { #grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div id="wallpaper"><canvas id="wallCanvas" aria-hidden="true"></canvas><video id="wallVideo" muted loop playsinline aria-hidden="true"></video><img id="wallGif" alt="" aria-hidden="true"></div>
+<main>
+  <h1>VOID<i></i></h1>
+  <div class="sub">BROWSE THE VOID</div>
+  <form id="f"><input id="q" placeholder="Search or enter URL…" autofocus spellcheck="false"><button>GO</button></form>
+  <div id="grid"></div>
+</main>
+<script>
+  document.getElementById('f').onsubmit = e => { e.preventDefault(); voidApi.go(document.getElementById('q').value); };
+  const wallLayer=document.getElementById('wallpaper'), wallCanvas=document.getElementById('wallCanvas'), wallCtx=wallCanvas.getContext('2d'), wallVideo=document.getElementById('wallVideo'), wallGif=document.getElementById('wallGif');
+  let wallMode='none', wallFrame=0, wallLastFrame=0, wallWidth=0, wallHeight=0, rainDrops=[];
+  const matrixChars='アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const accentRgb=()=>{const h=getComputedStyle(document.documentElement).getPropertyValue('--lime').trim().match(/^#([\da-f]{6})$/i);return h?[parseInt(h[1].slice(0,2),16),parseInt(h[1].slice(2,4),16),parseInt(h[1].slice(4,6),16)]:[170,235,92]};
+  const accentRgba=a=>{const [r,g,b]=accentRgb();return `rgba(${r},${g},${b},${a})`};
+  function sizeWallpaper(){const dpr=Math.min(window.devicePixelRatio||1,1);wallWidth=window.innerWidth;wallHeight=window.innerHeight;wallCanvas.width=Math.max(1,Math.round(wallWidth*dpr));wallCanvas.height=Math.max(1,Math.round(wallHeight*dpr));wallCtx.setTransform(dpr,0,0,dpr,0,0);rainDrops=Array.from({length:Math.ceil(wallWidth/19)},()=>-Math.random()*Math.max(8,wallHeight/18));}
+  function drawMatrix(){const cell=19;wallCtx.fillStyle='rgba(10,10,10,.15)';wallCtx.fillRect(0,0,wallWidth,wallHeight);wallCtx.font='14px Consolas,monospace';wallCtx.textBaseline='top';for(let i=0;i<rainDrops.length;i++){const y=rainDrops[i]*18;const ch=matrixChars[Math.floor(Math.random()*matrixChars.length)];wallCtx.globalAlpha=.35+Math.random()*.5;wallCtx.fillStyle=accentRgba(.8);wallCtx.fillText(ch,i*cell,y);rainDrops[i]+=0.6+Math.random()*.45;if(y>wallHeight&&Math.random()>.975)rainDrops[i]=-Math.random()*18;}wallCtx.globalAlpha=1;}
+  function drawWaves(time){wallCtx.clearRect(0,0,wallWidth,wallHeight);wallCtx.lineWidth=1.5;for(let row=0;row<4;row++){wallCtx.beginPath();for(let x=-8;x<=wallWidth+8;x+=9){const phase=time*.001+row*.78;const y=wallHeight*.52+(row-1.5)*17+Math.sin(x*.006+phase)*19+Math.sin(x*.0025-time*.0007+row)*11;if(x===-8)wallCtx.moveTo(x,y);else wallCtx.lineTo(x,y);}wallCtx.strokeStyle=accentRgba(.17+row*.035);wallCtx.stroke();}}
+  function drawHexagons(time){wallCtx.clearRect(0,0,wallWidth,wallHeight);const sx=52,sy=45,cols=Math.ceil(wallWidth/sx)+1,rows=Math.ceil(wallHeight/sy)+1;for(let band=0;band<4;band++){wallCtx.beginPath();for(let row=-1;row<rows;row++){for(let col=-1;col<cols;col++){if(((row+col)%4+4)%4!==band)continue;const cx=col*sx+(row%2)*sx/2,cy=row*sy;const pulse=Math.sin(time*.0012+band*1.5+(row+col)*.12);const radius=9+2.8*(.5+.5*pulse);for(let side=0;side<6;side++){const a=Math.PI/3*side-Math.PI/6,x=cx+Math.cos(a)*radius,y=cy+Math.sin(a)*radius;if(side===0)wallCtx.moveTo(x,y);else wallCtx.lineTo(x,y);}wallCtx.closePath();}}wallCtx.strokeStyle=accentRgba(.16+.16*(.5+.5*Math.sin(time*.0012+band*1.5)));wallCtx.lineWidth=1;wallCtx.stroke();}}
+  function animateWallpaper(time){wallFrame=0;if(document.hidden||!['matrix','waves','hexagons'].includes(wallMode))return;const interval=matchMedia('(prefers-reduced-motion: reduce)').matches?85:45;if(time-wallLastFrame>=interval){wallLastFrame=time;if(wallMode==='matrix')drawMatrix();else if(wallMode==='waves')drawWaves(time);else drawHexagons(time);}wallFrame=requestAnimationFrame(animateWallpaper);}
+  function makeStaticDesign(d={}){
+    const base=d.base||'#0a0a0a',accent=d.accent||'#16351d';
+    if(d.pattern==='dots')return {image:`radial-gradient(circle,${accent}b0 1px,transparent 1.5px),linear-gradient(135deg,${base},#080808)`,size:'22px 22px,auto'};
+    if(d.pattern==='grid')return {image:`linear-gradient(${accent}55 1px,transparent 1px),linear-gradient(90deg,${accent}55 1px,transparent 1px),linear-gradient(135deg,${base},#080808)`,size:'28px 28px,28px 28px,auto'};
+    if(d.pattern==='diagonal')return {image:`repeating-linear-gradient(135deg,${accent}55 0 1px,transparent 1px 16px),linear-gradient(135deg,${base},#080808)`,size:'auto'};
+    return {image:`radial-gradient(ellipse at 18% 8%,${accent}a0,transparent 58%),linear-gradient(135deg,${base},#080808)`,size:'auto'};
+  }
+  function setPrefs(p={}){
+    if(p.accent)document.documentElement.style.setProperty('--lime',p.accent);
+    if(wallFrame)cancelAnimationFrame(wallFrame);wallFrame=0;wallLastFrame=0;
+    wallVideo.pause();wallVideo.style.display='none';wallVideo.removeAttribute('src');wallVideo.load();wallGif.style.display='none';wallGif.removeAttribute('src');wallLayer.style.backgroundImage='';wallLayer.style.backgroundSize='cover';wallLayer.className='';wallCanvas.style.display='none';wallCtx.clearRect(0,0,wallWidth,wallHeight);
+    if(p.mode==='animated'){
+      wallMode=p.animated||'none';
+      if(['matrix','waves','hexagons'].includes(wallMode)){wallCanvas.style.display='block';wallFrame=requestAnimationFrame(animateWallpaper);}
+      else if(wallMode==='custom'&&p.animatedUrl){wallLayer.className='custom';if(p.animatedType==='gif'){wallGif.src=p.animatedUrl;wallGif.style.display='block';}else{wallVideo.src=p.animatedUrl;wallVideo.style.display='block';wallVideo.load();wallVideo.play().catch(()=>{});}}
+      else wallMode='none';
+      return;
+    }
+    wallMode='none';
+    if(p.static==='image'&&p.staticUrl){wallLayer.className='custom';wallLayer.style.backgroundImage=`url("${p.staticUrl.replaceAll('"','%22')}")`;}
+    else if(p.static==='design'){const bg=makeStaticDesign(p.design);wallLayer.style.backgroundImage=bg.image;wallLayer.style.backgroundSize=bg.size;}
+  }
+  sizeWallpaper();window.addEventListener('resize',()=>{sizeWallpaper();if(wallFrame)cancelAnimationFrame(wallFrame);wallLastFrame=0;if(wallCanvas.style.display==='block')wallFrame=requestAnimationFrame(animateWallpaper);});document.addEventListener('visibilitychange',()=>{if(document.hidden)wallVideo.pause();else{if(wallCanvas.style.display==='block'&&!wallFrame)wallFrame=requestAnimationFrame(animateWallpaper);if(wallVideo.style.display==='block')wallVideo.play().catch(()=>{});}});
+  voidApi.prefs().then(p=>{if(p)setPrefs(p)});
+
+  function render(list) {
+    const grid = document.getElementById('grid');
+    const tiles = list.map(b => {
+      const a = document.createElement('a'), ic = document.createElement('b'), t = document.createElement('em');
+      a.className = 'tile'; a.href = b.url; a.title = b.url + '\n(right-click to remove)';
+      ic.textContent = b.icon || (b.title || '?')[0].toUpperCase(); t.textContent = b.title;
+      a.oncontextmenu = e => { e.preventDefault(); voidApi.remove(b.url); };
+      a.append(ic, t);
+      return a;
+    });
+    const add = document.createElement('div');
+    add.className = 'tile add'; add.tabIndex = 0;
+    add.innerHTML = '<b>+</b><em>Add</em>';
+    add.onclick = () => {
+      if (add.querySelector('input')) return;
+      const inp = document.createElement('input');
+      inp.placeholder = 'site.com';
+      inp.onkeydown = e => { if (e.key === 'Enter' && inp.value.trim()) voidApi.add(inp.value); if (e.key === 'Escape') render(list); };
+      add.replaceChildren(inp); inp.focus();
+    };
+    grid.replaceChildren(...tiles, add);
+  }
+</script>
+</body>
+</html>
